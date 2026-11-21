@@ -8,8 +8,23 @@ const TZ='America/Sao_Paulo';
 const date=()=>new Intl.DateTimeFormat('en-CA',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const hash=s=>createHash('sha256').update(s).digest('hex').slice(0,40);
 const json=(obj,status=200,headers={})=>new Response(JSON.stringify(obj),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff',...headers}});
+const header=(req,name)=>typeof req.headers?.get==='function'?req.headers.get(name):(req.headers?.[name]||null);
+async function readBody(req){
+ if(typeof req.text==='function')return req.text();
+ if(req.body!=null)return typeof req.body==='string'?req.body:JSON.stringify(req.body);
+ const chunks=[];let length=0;
+ for await(const chunk of req){length+=Buffer.byteLength(chunk);if(length>18000)throw new Error('Mensagem muito longa');chunks.push(Buffer.from(chunk));}
+ return Buffer.concat(chunks).toString('utf8');
+}
+async function deliver(res,obj,status=200,headers={}){
+ const response=json(obj,status,headers);
+ if(!res||typeof res.setHeader!=='function')return response;
+ res.statusCode=response.status;
+ response.headers.forEach((value,key)=>res.setHeader(key,value));
+ return res.end(await response.text());
+}
 function session(req){
- const raw=req.headers.get('cookie')||'';
+ const raw=header(req,'cookie')||'';
  const old=raw.match(/(?:^|;\s*)auin_sid=([a-f0-9-]{36})(?:;|$)/)?.[1];
  const sid=old||randomUUID();
  return {sid,cookie:old?undefined:'auin_sid='+sid+'; Path=/; Max-Age=31536000; Secure; SameSite=Lax; HttpOnly'};
@@ -76,43 +91,46 @@ async function answer(question,history,context){
  if(typeof text!=='string'||!text.trim())throw new Error('Resposta vazia');
  return text.trim().slice(0,5000);
 }
-export default async function handler(req){
- if(!['GET','POST'].includes(req.method))return json({error:'Método não permitido.'},405);
- const url=new URL(req.url);
- if(req.method==='POST'&&req.headers.get('origin')&&req.headers.get('origin')!==url.origin)
-  return json({error:'Origem não permitida.'},403);
+export default async function handler(req,res){
+ const reply=(obj,status,headers)=>deliver(res,obj,status,headers);
+ if(!['GET','POST'].includes(req.method))return reply({error:'Método não permitido.'},405);
+ const host=header(req,'x-forwarded-host')||header(req,'host')||'auinai.vercel.app';
+ const proto=header(req,'x-forwarded-proto')||'https';
+ const url=new URL(req.url,proto+'://'+host);
+ if(req.method==='POST'&&header(req,'origin')&&header(req,'origin')!==url.origin)
+  return reply({error:'Origem não permitida.'},403);
  const s=session(req),extra=withCookie(s);
  try{
-  if(!process.env.BLOB_READ_WRITE_TOKEN)return json({error:'Serviço em configuração.',ready:false},503,extra);
+  if(!process.env.BLOB_READ_WRITE_TOKEN)return reply({error:'Serviço em configuração.',ready:false},503,extra);
   if(req.method==='GET'){
    const used=Math.min(LIMIT,await count(s));
-   return json({limit:LIMIT,used,remaining:LIMIT-used,resetTimezone:TZ,ready:true,message:used>=LIMIT?LIMIT_MESSAGE:null},200,extra);
+   return reply({limit:LIMIT,used,remaining:LIMIT-used,resetTimezone:TZ,ready:true,message:used>=LIMIT?LIMIT_MESSAGE:null},200,extra);
   }
-  const size=Number(req.headers.get('content-length')||0);
-  if(size>18000)return json({error:'Mensagem muito longa.'},413,extra);
-  const raw=await req.text();
-  if(raw.length>18000)return json({error:'Mensagem muito longa.'},413,extra);
+  const size=Number(header(req,'content-length')||0);
+  if(size>18000)return reply({error:'Mensagem muito longa.'},413,extra);
+  const raw=await readBody(req);
+  if(raw.length>18000)return reply({error:'Mensagem muito longa.'},413,extra);
   let body;
-  try{body=JSON.parse(raw);}catch{return json({error:'Dados inválidos.'},400,extra);}
+  try{body=JSON.parse(raw);}catch{return reply({error:'Dados inválidos.'},400,extra);}
   const question=typeof body?.message==='string'?body.message.trim():'';
-  if(!question||question.length>1200)return json({error:'Digite uma pergunta de até 1.200 caracteres.'},400,extra);
+  if(!question||question.length>1200)return reply({error:'Digite uma pergunta de até 1.200 caracteres.'},400,extra);
   const history=Array.isArray(body.history)?body.history.slice(-8):[];
   const slot=await reserve(s);
-  if(!slot)return json({error:LIMIT_MESSAGE,limitReached:true,remaining:0},429,extra);
+  if(!slot)return reply({error:LIMIT_MESSAGE,limitReached:true,remaining:0},429,extra);
   try{
    const database=await load();
    const prior=history.filter(x=>x?.role==='user').slice(-2).map(x=>x.content).join(' ');
    const {context,sources}=select(question,database,prior);
    const response=await answer(question,history,context);
    const used=Math.min(LIMIT,await count(s));
-   return json({answer:response,sources,used,remaining:LIMIT-used,limit:LIMIT},200,extra);
+   return reply({answer:response,sources,used,remaining:LIMIT-used,limit:LIMIT},200,extra);
   }catch(e){
    console.error('AUIN chat:',e?.message||e);
    try{await del(slot.slot.url);}catch(cleanup){console.error('AUIN quota release:',cleanup?.message);}
-   return json({error:failMessage},503,extra);
+   return reply({error:failMessage},503,extra);
   }
  }catch(e){
   console.error('AUIN storage:',e?.message||e);
-  return json({error:'O serviço está temporariamente indisponível.'},503,extra);
+  return reply({error:'O serviço está temporariamente indisponível.'},503,extra);
  }
 }
