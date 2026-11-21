@@ -70,8 +70,8 @@ const SYSTEM=[
  'Evite links inventados. Links para referências serão apresentados separadamente pela interface.',
 ].join('\n');
 
-async function answer(question,history,context){
- const token=process.env.AI_GATEWAY_API_KEY||process.env.VERCEL_OIDC_TOKEN;
+async function answer(question,history,context,oidcToken){
+ const token=process.env.AI_GATEWAY_API_KEY||oidcToken||process.env.VERCEL_OIDC_TOKEN;
  if(!token)throw new Error('AI Gateway sem autenticação');
  const messages=[
   {role:'system',content:SYSTEM+'\n\nFONTES DISPONÍVEIS:\n'+(context||'Nenhuma fonte acessível; informe indisponibilidade das fontes.')},
@@ -121,7 +121,7 @@ export default async function handler(req,res){
    const database=await load();
    const prior=history.filter(x=>x?.role==='user').slice(-2).map(x=>x.content).join(' ');
    const {context,sources}=select(question,database,prior);
-   const response=await answer(question,history,context);
+   const response=await answer(question,history,context,header(req,'x-vercel-oidc-token'));
    const used=Math.min(LIMIT,await count(s));
    return reply({answer:response,sources,used,remaining:LIMIT-used,limit:LIMIT},200,extra);
   }catch(e){
