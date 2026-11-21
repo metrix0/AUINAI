@@ -11,6 +11,27 @@ const PAGES=[
 ];
 const STOP=new Set('como para sobre onde quais qual quem quero preciso posso pode minha meu fazer informações informar empresa empresas unesp auin por com dos das uma uns que isso essa seus entre hoje'.split(' '));
 export const norm=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+// O Silo público usa muitas letras maiúsculas e alguns nomes importados de arquivos.
+// Normalizar apenas a apresentação, sem alterar os registros de origem.
+const NAME_PARTICLES=new Set(['de','da','do','das','dos','e','em','com','para','por','of','and','the','for','in']);
+const NAME_ACRONYMS=new Set(['AI','IA','TI','CM','FMD','ERP','USP','UNESP','SENAI','SENAC','MEI','IBGE','GPS','API','DNA','RNA','CNPJ','LTDA','ME','EIRELI','SP','RJ','MG','RS','PR','ES','DF','B2B','B2C']);
+export function normalizeCompanyName(value){
+ let name=String(value??'').normalize('NFKC').replace(/[\u200B-\u200D\uFEFF]/g,'').trim().replace(/\s+/g,' ');
+ // Exemplos encontrados no Silo: SECTRA-SISTEMAS-LOGO-M12_U34_..., PROVAZZI-M12_U17_...
+ const cleaned=name.replace(/(?:[-_ ]+(?:LOGO|LOGOTIPO|IMG|IMAGEM|IMAGE))?[-_ ]+M\d+_U\d+_\d{6,}(?:[-_]\d+)*$/i,'').trim();
+ if(cleaned!==name){
+  name=cleaned.replace(/[-_]+/g,' ').replace(/\s+/g,' ').trim();
+  if(name.length<2)return ''; // Nome composto só de inicial de arquivo, sem empresa identificável.
+ }
+ return name.replace(/[\p{L}]+(?:['’][\p{L}]+)*/gu,(word,index)=>{
+  const upper=word.toLocaleUpperCase('pt-BR'),lower=word.toLocaleLowerCase('pt-BR');
+  if(word!==upper&&word!==lower)return word; // Preserva marcas já grafadas como THOTech.
+  if(NAME_ACRONYMS.has(upper))return upper;
+  if(index>0&&NAME_PARTICLES.has(lower))return lower;
+  return lower[0].toLocaleUpperCase('pt-BR')+lower.slice(1);
+ });
+}
+
 const terms=s=>[...new Set((norm(s).match(/[a-z0-9]{3,}/g)||[]).filter(x=>!STOP.has(x)))].slice(0,22);
 function decode(s){return String(s).replace(/&#(x[0-9a-f]+|[0-9]+);/gi,(m,n)=>{const v=n[0].toLowerCase()==='x'?parseInt(n.slice(1),16):parseInt(n,10);return v>0&&v<=0x10ffff?String.fromCodePoint(v):' ';}).replace(/&(?:nbsp|amp|quot|lt|gt|rsquo|ldquo|rdquo|ndash|mdash|hellip);/gi,m=>({'&nbsp;':' ','&amp;':'&','&quot;':'"','&lt;':'<','&gt;':'>','&rsquo;':'’','&ldquo;':'“','&rdquo;':'”','&ndash;':'–','&mdash;':'—','&hellip;':'…'})[m.toLowerCase()]||' ');}
 function extract(html){
@@ -32,11 +53,12 @@ export async function load(){
   fetch(SILO,{signal:AbortSignal.timeout(6500),next:{revalidate:900}}).then(r=>r.ok?r.json():[]).catch(()=>[])
  ]).then(([pages,raw])=>{
   const cities=Array.isArray(raw)?raw:Array.isArray(raw?.value)?raw.value:[];
-  const companies=cities.flatMap(city=>(Array.isArray(city?.businesses)?city.businesses:[]).filter(x=>x?.name).map(x=>({
-   name:String(x.name).slice(0,140),city:String(city.name||city.info||'').slice(0,70),
-   description:String(x.description||'').slice(0,850),category:String(x.category||''),
-   email:String(x.email||'').slice(0,120),phone:String(x.phone||'').slice(0,30)
-  })));
+  const companies=cities.flatMap(city=>(Array.isArray(city?.businesses)?city.businesses:[])
+   .filter(x=>x?.name).map(x=>({
+    name:normalizeCompanyName(String(x.name).slice(0,140)),city:String(city.name||city.info||'').slice(0,70),
+    description:String(x.description||'').slice(0,850),category:String(x.category||''),
+    email:String(x.email||'').slice(0,120),phone:String(x.phone||'').slice(0,30)
+   })).filter(x=>x.name));
   const result={pages:pages.filter(Boolean),companies,siloAvailable:cities.length>0};
   if(result.pages.length||result.siloAvailable){cache=result;updated=Date.now();}
   return cache||result;
