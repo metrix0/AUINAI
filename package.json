@@ -7,7 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "node --test",
+    "test": "node --test tests/knowledge.test.js",
     "dev": "vercel dev"
   },
   "dependencies": {

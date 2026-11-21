@@ -50,13 +50,34 @@ export function select(question,dataset,previous=''){
  const ranked=dataset.pages.map(p=>({p,w:score(p.title,words)*6+score(p.text,words)})).sort((a,b)=>b.w-a.w).filter(x=>x.w>0).slice(0,5);
  const sources=ranked.slice(0,4).map(x=>({title:x.p.title,url:x.p.url}));
  const context=ranked.map(x=>'SITE OFICIAL: '+x.p.title+'\nURL: '+x.p.url+'\n'+excerpt(x.p.text,words)).join('\n\n---\n\n');
- const about=/empres|startup|spin.off|j[uú]nior|empreend|cidade|munic[ií]pio|filha|rio claro|araraquara|botucatu/i.test(question+' '+previous);
- if(!about||!dataset.siloAvailable)return {context:context.slice(0,11000),sources};
  const phrase=norm(question);
- const matches=dataset.companies.map(c=>({c,w:score(c.name+' '+c.city+' '+c.description,words)*3+(phrase.includes(norm(c.name))&&c.name.length>3?25:0)}))
-  .filter(x=>x.w>0).sort((a,b)=>b.w-a.w).slice(0,16).map(x=>x.c);
- const companyContext='BASE PÚBLICA JSON SILO DA AUIN: '+dataset.companies.length+' registros de empresas/organizações no mapa (categorias heterogêneas; não confundir total com total de empresas-filhas).' +
-  '\nResultados relacionados:\n'+(matches.length?matches.map(x=>JSON.stringify(x)).join('\n'):'Nenhum nome correspondente encontrado.');
- sources.unshift({title:'Mapa de empresas e startups',url:SITE+'/empresas-filhas-e-startups/'});
- return {context:(companyContext+'\n\n'+context).slice(0,13000),sources:[...new Map(sources.map(x=>[x.url,x])).values()].slice(0,4)};
+ const prior=norm(previous);
+ const companyName=dataset.companies.find(c=>c.name.length>5&&phrase.includes(norm(c.name)));
+ const about=/empres|startup|spin.off|junior|empreend|cidade|municipio|filha|rio claro|araraquara|botucatu|ambiente de inovacao|parque tecnologico/i.test(norm(question+' '+previous))||Boolean(companyName);
+ if(!about||!dataset.siloAvailable)return {context:context.slice(0,11000),sources};
+ const kind=phrase+' '+prior;
+ // Categorias confirmadas no código do mapa PÚBLICO de auin.unesp.br (2026).
+ const type={'1':'empresas-filhas e startups','2':'ambientes de inovação','3':'empresas juniores','4':'parques tecnológicos'};
+ let category=null;
+ if(/junior/.test(kind))category='3';
+ else if(/ambiente|incubadora/.test(kind))category='2';
+ else if(/parque tecnologico/.test(kind))category='4';
+ else if(/filha|startup|spin.off|empresa/.test(kind))category='1';
+ const cityNames=[...new Set(dataset.companies.map(c=>c.city))].filter(x=>x.length>3).sort((a,b)=>b.length-a.length);
+ const city=cityNames.find(name=>phrase.includes(norm(name)))||null;
+ // Uma pergunta com nome exato de organização vence filtros genéricos.
+ const selected=companyName?[companyName]:
+  dataset.companies.filter(c=>(!category||c.category===category)&&(!city||c.city===city));
+ const scores=selected.map(c=>({c,w:score(c.name+' '+c.city+' '+c.description,words)*3+(phrase.includes(norm(c.name))&&c.name.length>3?25:0)}))
+  .sort((a,b)=>b.w-a.w);
+ const matches=(city||companyName?scores:scores.filter(x=>x.w>0)).slice(0,18).map(x=>x.c);
+ const categories=Object.fromEntries(Object.keys(type).map(id=>[type[id],dataset.companies.filter(c=>c.category===id).length]));
+ const scope=(category?'categoria '+category+' ('+type[category]+')':'todas as categorias')+(city?' em '+city:'');
+ const companyContext='BASE PÚBLICA JSON SILO (mesmo conjunto usado no mapa AUIN). Categorias confirmadas pela página oficial: 1=empresas-filhas e startups; 2=ambientes de inovação; 3=empresas juniores; 4=parques tecnológicos.'+
+  '\nContagens totais por categoria: '+JSON.stringify(categories)+
+  '\nFiltro aplicado: '+scope+'. Contagem EXATA de registros no filtro: '+selected.length+'.'+
+  (city?'\nNomes nesse município e categoria: '+selected.map(c=>c.name).join('; ').slice(0,4300)+'.':'')+
+  '\nRegistros detalhados mais pertinentes:\n'+(matches.length?matches.map(x=>JSON.stringify({...x,categoryLabel:type[x.category]||'Não especificada'})).join('\n'):'Não foi encontrado registro correspondente.');
+ sources.unshift({title:'Mapa de empresas-filhas e startups',url:SITE+'/empresas-filhas-e-startups/'});
+ return {context:(companyContext+'\n\n'+context).slice(0,14500),sources:[...new Map(sources.map(x=>[x.url,x])).values()].slice(0,4)};
 }
