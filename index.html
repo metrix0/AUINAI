@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f8f9fb">
+<meta name="description" content="Tire dúvidas sobre a AUIN, propriedade intelectual, parcerias e empresas-filhas da Unesp.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<title>Assistente AUIN · Informações da Unesp</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:#172033;background:#f8f9fb;font-synthesis:none}
+*{box-sizing:border-box}
+body{margin:0;min-height:100svh}
+button,textarea{font:inherit}
+button{cursor:pointer}
+a{color:#235c9b;text-decoration:none}a:hover{text-decoration:underline}
+.app{display:flex;flex-direction:column;min-height:100svh;max-width:960px;margin:0 auto}
+header{display:flex;align-items:center;justify-content:space-between;padding:21px 30px;border-bottom:1px solid #e5eaf0;gap:16px}
+.brand{display:flex;gap:12px;align-items:center}
+.mark{width:41px;height:41px;border:1px solid #244a75;border-radius:12px;background:#244a75;color:#fff;display:grid;place-items:center;font-weight:780;font-size:20px;letter-spacing:-.07em}
+.identity strong{display:block;font-size:15px;font-weight:740;letter-spacing:-.02em}.identity small{display:block;font-size:12px;color:#7a8696;margin-top:2px}
+.quota{font-size:12px;color:#667588;white-space:nowrap;background:#eef2f7;border:1px solid #e4eaf1;border-radius:20px;padding:9px 13px}
+main{width:100%;flex:1;display:flex;flex-direction:column;min-height:0}
+.messages{width:100%;max-width:760px;margin:0 auto;flex:1;padding:28px 26px 12px;display:flex;flex-direction:column;gap:18px}
+.intro{margin:auto 0;padding:60px 0 80px}
+.eyebrow{font-size:12px;font-weight:650;letter-spacing:.13em;text-transform:uppercase;color:#587596}
+h1{font-size:clamp(27px,4vw,37px);line-height:1.15;letter-spacing:-.045em;font-weight:700;margin:12px 0}
+.intro p{color:#6d798a;line-height:1.6;font-size:15px;max-width:560px}
+.examples{display:flex;flex-wrap:wrap;gap:9px;margin-top:26px}
+.example{border:1px solid #d9e0e9;background:#fff;color:#344a66;padding:10px 13px;border-radius:10px;font-size:13px;text-align:left;transition:border-color .12s,background .12s}
+.example:hover,.example:focus-visible{background:#eff5fb;border-color:#a9bdd5}
+.message{display:flex;flex-direction:column;gap:7px;max-width:88%;font-size:14px;line-height:1.65}
+.message.user{align-self:flex-end}
+.message.bot{align-self:flex-start}
+.bubble{white-space:pre-wrap;overflow-wrap:anywhere;padding:13px 16px;border-radius:15px;background:#fff;border:1px solid #e4e9ef;color:#26354a;box-shadow:0 2px 10px #152b4705}
+.user .bubble{background:#234c7c;color:#fff;border-color:#234c7c;border-bottom-right-radius:4px}
+.bot .bubble{border-bottom-left-radius:4px}
+.sources{display:flex;flex-wrap:wrap;gap:10px;padding-left:4px}
+.sources a{font-size:12px;color:#4d6c8e}
+.sources a:hover{text-decoration:underline}
+.composer-wrap{position:sticky;bottom:0;width:100%;background:linear-gradient(180deg,transparent 0%,#f8f9fb 20%);padding:14px 24px 20px}
+.composer{width:100%;max-width:760px;margin:0 auto}
+form{display:flex;align-items:end;background:#fff;border:1px solid #d9e0e9;box-shadow:0 5px 23px #11233c08;border-radius:16px;padding:9px 9px 9px 16px;gap:10px}
+form:focus-within{border-color:#6f9ccf;box-shadow:0 0 0 3px #2f75bc12}
+textarea{background:transparent;border:0;resize:none;outline:none;flex:1;min-width:0;min-height:26px;max-height:130px;padding:8px 2px;line-height:1.5;color:#172033;font-size:14px}
+textarea::placeholder{color:#9ca7b3}
+.send{display:grid;place-items:center;flex:none;width:37px;height:37px;border:0;border-radius:11px;background:#234c7c;color:#fff;transition:background .12s}
+.send:hover:not(:disabled){background:#15365e}.send:disabled{opacity:.42;cursor:default}
+.meta{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 2px 0;font-size:11px;color:#8894a3}
+.meta a{color:#627d9a}
+.notice{border-radius:12px;background:#edf3f9;color:#344d69;border:1px solid #dce8f4;padding:13px 16px;font-size:13px;line-height:1.6}
+.loading .bubble{color:#7f8c9b}
+.hidden{display:none!important}
+@media(max-width:620px){header{padding:15px 17px}.mark{width:36px;height:36px;border-radius:10px}.identity strong{font-size:14px}.identity small{font-size:11px}.quota{font-size:11px;padding:7px 9px}.messages{padding:20px 17px 12px}.intro{padding:30px 0 62px}.message{max-width:97%}.composer-wrap{padding:13px 12px 11px}.meta{font-size:10px}.examples{gap:8px}.example{font-size:12px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="brand">
+    <div class="mark" aria-hidden="true">A</div>
+    <div class="identity"><strong>Assistente AUIN</strong><small>Informações sobre inovação na Unesp</small></div>
+  </div>
+  <div class="quota" id="quota" aria-live="polite">10 perguntas por dia</div>
+</header>
+<main>
+  <div class="messages" id="messages" aria-live="polite">
+    <div class="intro" id="intro">
+      <span class="eyebrow">Agência Unesp de Inovação</span>
+      <h1>Como posso ajudar?</h1>
+      <p>Encontre informações sobre a AUIN, patentes, parcerias, startups e empresas-filhas da Unesp.</p>
+      <div class="examples">
+        <button class="example" type="button" data-question="Como comunicar uma invenção à AUIN?">Como comunicar uma invenção?</button>
+        <button class="example" type="button" data-question="Quais empresas-filhas estão cadastradas em Rio Claro?">Empresas de Rio Claro</button>
+        <button class="example" type="button" data-question="Como iniciar uma parceria com a Unesp pela AUIN?">Parcerias com a Unesp</button>
+      </div>
+    </div>
+  </div>
+  <div class="composer-wrap">
+    <div class="composer">
+      <div class="notice hidden" id="limit" role="status"></div>
+      <form id="form" autocomplete="off">
+        <textarea id="question" placeholder="Digite sua pergunta…" aria-label="Sua pergunta" maxlength="1200" rows="1" required></textarea>
+        <button class="send" id="send" type="submit" aria-label="Enviar pergunta" title="Enviar pergunta">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 14-8-5 16-3-7-6-1Z"/><path d="m11 13 8-9"/></svg>
+        </button>
+      </form>
+      <div class="meta"><span>10 perguntas por dia · Limite renovado à meia-noite (Brasília)</span><a href="https://auin.unesp.br/" target="_blank" rel="noopener noreferrer">Portal oficial da AUIN</a></div>
+    </div>
+  </div>
+</main>
+</div>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const el = $('messages'),form=$('form'),input=$('question'),send=$('send'),quota=$('quota'),notice=$('limit');
+  const history=[];
+  let working=false,remaining=10;
+  const limitText='Você atingiu o limite de 10 mensagens de hoje. Cada resposta tem um custo pequeno, mas esse limite ajuda a manter o serviço gratuito para todos. Volte amanhã.';
+  function update(count){
+    remaining=Math.max(0,Number(count)||0);
+    quota.textContent=remaining+' de 10 perguntas restantes';
+    if(remaining===0){notice.textContent=limitText;notice.classList.remove('hidden');form.classList.add('hidden');}
+    else{notice.classList.add('hidden');form.classList.remove('hidden');}
+    send.disabled=working||remaining===0||!input.value.trim();
+  }
+  function addMessage(role,text,sources=[]){
+    $('intro')?.remove();
+    const holder=document.createElement('div');
+    holder.className='message '+(role==='user'?'user':'bot');
+    const bubble=document.createElement('div');
+    bubble.className='bubble';
+    bubble.textContent=text;
+    holder.appendChild(bubble);
+    if(sources.length){
+      const refs=document.createElement('div');
+      refs.className='sources';
+      for(const item of sources.slice(0,4)){
+        try{
+          const url=new URL(item.url);
+          if(url.protocol!=='https:'||url.hostname!=='auin.unesp.br')continue;
+          const a=document.createElement('a');a.href=url.href;a.target='_blank';a.rel='noopener noreferrer';a.textContent=item.title+' ↗';refs.appendChild(a);
+        }catch{}
+      }
+      holder.appendChild(refs);
+    }
+    el.appendChild(holder);
+    holder.scrollIntoView({behavior:'smooth',block:'end'});
+    return holder;
+  }
+  async function status(){
+    try{
+      const r=await fetch('/api/chat',{cache:'no-store'});
+      const d=await r.json();
+      if(!r.ok||!d.ready)throw Error('Serviço indisponível');
+      update(d.remaining);
+    }catch{
+      quota.textContent='Serviço indisponível';
+      input.placeholder='Assistente indisponível no momento';
+      input.disabled=true;send.disabled=true;
+    }
+  }
+  function autoresize(){input.style.height='auto';input.style.height=Math.min(input.scrollHeight,130)+'px';send.disabled=working||remaining===0||!input.value.trim();}
+  async function ask(text){
+    const question=String(text||'').trim();
+    if(!question||working||remaining<=0)return;
+    working=true;
+    const prior=history.slice(-8);
+    addMessage('user',question);
+    history.push({role:'user',content:question});
+    input.value='';autoresize();send.disabled=true;
+    const pending=addMessage('bot','Consultando as fontes…');
+    pending.classList.add('loading');
+    try{
+      const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:question,history:prior})});
+      const d=await r.json();
+      pending.remove();
+      if(r.status===429||d.limitReached){
+        addMessage('bot',d.error||limitText);update(0);return;
+      }
+      if(!r.ok||!d.answer)throw Error(d.error||'Não foi possível responder.');
+      addMessage('bot',d.answer,d.sources||[]);
+      history.push({role:'assistant',content:d.answer});
+      update(d.remaining);
+    }catch(e){
+      pending.remove();
+      addMessage('bot',e.message||'Não foi possível responder agora.');
+      status();
+    }finally{working=false;autoresize();input.focus();}
+  }
+  form.addEventListener('submit',e=>{e.preventDefault();ask(input.value);});
+  input.addEventListener('input',autoresize);
+  input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();ask(input.value);}});
+  document.querySelectorAll('[data-question]').forEach(b=>b.addEventListener('click',()=>ask(b.dataset.question)));
+  status();
+})();
+</script>
+</body>
+</html>
