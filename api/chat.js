@@ -70,22 +70,22 @@ const SYSTEM=[
  'Evite links inventados. Links para referências serão apresentados separadamente pela interface.',
 ].join('\n');
 
-async function answer(question,history,context,oidcToken){
- const token=process.env.AI_GATEWAY_API_KEY||oidcToken||process.env.VERCEL_OIDC_TOKEN;
- if(!token)throw new Error('AI Gateway sem autenticação');
+async function answer(question,history,context){
+ const token=process.env.OPENAI_API_KEY;
+ if(!token)throw new Error('OPENAI_API_KEY não configurada');
  const messages=[
   {role:'system',content:SYSTEM+'\n\nFONTES DISPONÍVEIS:\n'+(context||'Nenhuma fonte acessível; informe indisponibilidade das fontes.')},
   ...history.slice(-8).filter(x=>x&&['user','assistant'].includes(x.role)&&typeof x.content==='string')
    .map(x=>({role:x.role,content:x.content.slice(0,1000)})),
   {role:'user',content:question}
  ];
- const res=await fetch('https://ai-gateway.vercel.sh/v1/chat/completions',{
+ const res=await fetch('https://api.openai.com/v1/chat/completions',{
   method:'POST',
   headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
-  body:JSON.stringify({model:'openai/gpt-6-luna',messages,reasoning_effort:'none',max_completion_tokens:800}),
+  body:JSON.stringify({model:'gpt-6-luna',messages,reasoning_effort:'none',max_completion_tokens:800}),
   signal:AbortSignal.timeout(24000)
  });
- if(!res.ok){const body=await res.text().catch(()=>'');console.error('AUIN Gateway',res.status,body.slice(0,400));throw new Error('Gateway '+res.status);}
+ if(!res.ok){const body=await res.text().catch(()=>'');console.error('AUIN OpenAI API',res.status,body.slice(0,400));throw new Error('OpenAI API '+res.status);}
  const result=await res.json();
  const text=result?.choices?.[0]?.message?.content;
  if(typeof text!=='string'||!text.trim())throw new Error('Resposta vazia');
@@ -102,6 +102,7 @@ export default async function handler(req,res){
  const s=session(req),extra=withCookie(s);
  try{
   if(!process.env.BLOB_READ_WRITE_TOKEN)return reply({error:'Serviço em configuração.',ready:false},503,extra);
+  if(!process.env.OPENAI_API_KEY)return reply({error:'Serviço em configuração.',ready:false},503,extra);
   if(req.method==='GET'){
    const used=Math.min(LIMIT,await count(s));
    return reply({limit:LIMIT,used,remaining:LIMIT-used,resetTimezone:TZ,ready:true,message:used>=LIMIT?LIMIT_MESSAGE:null},200,extra);
@@ -121,7 +122,7 @@ export default async function handler(req,res){
    const database=await load();
    const prior=history.filter(x=>x?.role==='user').slice(-2).map(x=>x.content).join(' ');
    const {context,sources}=select(question,database,prior);
-   const response=await answer(question,history,context,header(req,'x-vercel-oidc-token'));
+   const response=await answer(question,history,context);
    const used=Math.min(LIMIT,await count(s));
    return reply({answer:response,sources,used,remaining:LIMIT-used,limit:LIMIT},200,extra);
   }catch(e){
